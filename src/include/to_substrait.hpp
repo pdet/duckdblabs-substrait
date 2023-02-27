@@ -13,6 +13,18 @@
 #include "duckdb/function/table_function.hpp"
 
 namespace duckdb {
+
+class SubstraitRelation{
+  public:
+  SubstraitRelation(){};
+  substrait::Rel * substrait_relation = nullptr;
+  vector<SubstraitRelation> children;
+  // Interesting solution of having this flatten instead of having a table index.
+  vector<idx_t> field_reference;
+  // Maps the emit of this operator to the original field_reference
+  unordered_map<idx_t,idx_t> field_reference_map;
+};
+
 class DuckDBToSubstrait {
 public:
 	explicit DuckDBToSubstrait(ClientContext &context, duckdb::LogicalOperator &dop) : context(context) {
@@ -38,16 +50,16 @@ private:
 	substrait::RelRoot *TransformRootOp(LogicalOperator &dop);
 
 	//! Methods to Transform Logical Operators to Substrait Relations
-	substrait::Rel *TransformOp(duckdb::LogicalOperator &dop);
-	substrait::Rel *TransformFilter(duckdb::LogicalOperator &dop);
-	substrait::Rel *TransformProjection(duckdb::LogicalOperator &dop);
-	substrait::Rel *TransformTopN(duckdb::LogicalOperator &dop);
-	substrait::Rel *TransformLimit(duckdb::LogicalOperator &dop);
-	substrait::Rel *TransformOrderBy(duckdb::LogicalOperator &dop);
-	substrait::Rel *TransformComparisonJoin(duckdb::LogicalOperator &dop);
-	substrait::Rel *TransformAggregateGroup(duckdb::LogicalOperator &dop);
-	substrait::Rel *TransformGet(duckdb::LogicalOperator &dop);
-	substrait::Rel *TransformCrossProduct(duckdb::LogicalOperator &dop);
+	SubstraitRelation TransformOp(duckdb::LogicalOperator &dop);
+	SubstraitRelation TransformFilter(duckdb::LogicalOperator &dop);
+	SubstraitRelation TransformProjection(duckdb::LogicalOperator &dop);
+	SubstraitRelation TransformTopN(duckdb::LogicalOperator &dop);
+	SubstraitRelation TransformLimit(duckdb::LogicalOperator &dop);
+	SubstraitRelation TransformOrderBy(duckdb::LogicalOperator &dop);
+	SubstraitRelation TransformComparisonJoin(duckdb::LogicalOperator &dop);
+	SubstraitRelation TransformAggregateGroup(duckdb::LogicalOperator &dop);
+	SubstraitRelation TransformGet(duckdb::LogicalOperator &dop);
+	SubstraitRelation TransformCrossProduct(duckdb::LogicalOperator &dop);
 
 	//! Methods to transform different LogicalGet Types (e.g., Table, Parquet)
 	//! To Substrait;
@@ -57,20 +69,20 @@ private:
 
 	//! Methods to transform DuckDBConstants to Substrait Expressions
 	void TransformConstant(duckdb::Value &dval, substrait::Expression &sexpr);
-	void TransformInteger(duckdb::Value &dval, substrait::Expression &sexpr);
-	void TransformDouble(Value &dval, substrait::Expression &sexpr);
-	void TransformBigInt(duckdb::Value &dval, substrait::Expression &sexpr);
-	void TransformDate(duckdb::Value &dval, substrait::Expression &sexpr);
-	void TransformVarchar(duckdb::Value &dval, substrait::Expression &sexpr);
-	void TransformBoolean(duckdb::Value &dval, substrait::Expression &sexpr);
-	void TransformDecimal(duckdb::Value &dval, substrait::Expression &sexpr);
-	void TransformHugeInt(Value &dval, substrait::Expression &sexpr);
-	void TransformSmallInt(duckdb::Value &dval, substrait::Expression &sexpr);
-	void TransformFloat(Value &dval, substrait::Expression &sexpr);
-	void TransformTime(Value &dval, substrait::Expression &sexpr);
-	void TransformInterval(Value &dval, substrait::Expression &sexpr);
-	void TransformTimestamp(Value &dval, substrait::Expression &sexpr);
-	void TransformEnum(duckdb::Value &dval, substrait::Expression &sexpr);
+	static void TransformInteger(duckdb::Value &dval, substrait::Expression &sexpr);
+	static void TransformDouble(Value &dval, substrait::Expression &sexpr);
+	static void TransformBigInt(duckdb::Value &dval, substrait::Expression &sexpr);
+	static void TransformDate(duckdb::Value &dval, substrait::Expression &sexpr);
+	static void TransformVarchar(duckdb::Value &dval, substrait::Expression &sexpr);
+	static void TransformBoolean(duckdb::Value &dval, substrait::Expression &sexpr);
+	static void TransformDecimal(duckdb::Value &dval, substrait::Expression &sexpr);
+	static void TransformHugeInt(Value &dval, substrait::Expression &sexpr);
+	static void TransformSmallInt(duckdb::Value &dval, substrait::Expression &sexpr);
+	static void TransformFloat(Value &dval, substrait::Expression &sexpr);
+	static void TransformTime(Value &dval, substrait::Expression &sexpr);
+	static void TransformInterval(Value &dval, substrait::Expression &sexpr);
+	static void TransformTimestamp(Value &dval, substrait::Expression &sexpr);
+	static void TransformEnum(duckdb::Value &dval, substrait::Expression &sexpr);
 
 	//! Methods to transform a DuckDB Expression to a Substrait Expression
 	void TransformExpr(duckdb::Expression &dexpr, substrait::Expression &sexpr, uint64_t col_offset = 0);
@@ -104,8 +116,8 @@ private:
 	//! Transforms DuckDB Sort Order to Substrait Sort Order
 	void TransformOrder(duckdb::BoundOrderByNode &dordf, substrait::SortField &sordf);
 
-	void AllocateFunctionArgument(substrait::Expression_ScalarFunction *scalar_fun, substrait::Expression *value);
-	std::string &RemapFunctionName(std::string &function_name);
+	static void AllocateFunctionArgument(substrait::Expression_ScalarFunction *scalar_fun, substrait::Expression *value);
+	static std::string &RemapFunctionName(std::string &function_name);
 
 	//! Creates a Conjuction
 	template <typename T, typename FUNC>
