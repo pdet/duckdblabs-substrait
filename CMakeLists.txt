@@ -96,7 +96,8 @@ set(SUBSTRAIT_SOURCES
 
 set(EXTENSION_SOURCES
     src/to_substrait.cpp src/from_substrait.cpp src/substrait_extension.cpp
-    ${SUBSTRAIT_SOURCES} ${PROTOBUF_SOURCES})
+    src/to_substrait/logical_operator/get.cpp ${SUBSTRAIT_SOURCES}
+    ${PROTOBUF_SOURCES})
 
 add_library(${EXTENSION_NAME} STATIC ${EXTENSION_SOURCES})
 

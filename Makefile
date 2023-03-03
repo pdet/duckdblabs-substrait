@@ -99,10 +99,8 @@ test_release_r: release_r
 	cd test/r && R -f test_substrait.R
 
 format:
-	cp ${DUCKDB_DIRECTORY}/.clang-format .
 	find src/ -iname *.hpp -o -iname *.cpp | xargs clang-format --sort-includes=0 -style=file -i
 	cmake-format -i CMakeLists.txt
-	rm .clang-format
 
 update:
 	git submodule update --remote --merge
