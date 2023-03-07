@@ -94,10 +94,15 @@ set(SUBSTRAIT_SOURCES
     third_party/substrait/substrait/type_expressions.pb.cc
     third_party/substrait/substrait/extensions/extensions.pb.cc)
 
-set(EXTENSION_SOURCES
-    src/to_substrait.cpp src/from_substrait.cpp src/substrait_extension.cpp
-    src/to_substrait/logical_operator/get.cpp ${SUBSTRAIT_SOURCES}
-    ${PROTOBUF_SOURCES})
+set(TO_SUBSTRAIT_SOURCES
+    src/to_substrait.cpp src/substrait_extension.cpp
+    src/to_substrait/logical_operator/get.cpp
+    src/to_substrait/plan_transformer.cpp)
+
+set(FROM_SUBSTRAIT_SOURCES src/from_substrait.cpp)
+
+set(EXTENSION_SOURCES ${TO_SUBSTRAIT_SOURCES} ${FROM_SUBSTRAIT_SOURCES}
+                      ${SUBSTRAIT_SOURCES} ${PROTOBUF_SOURCES})
 
 add_library(${EXTENSION_NAME} STATIC ${EXTENSION_SOURCES})
 

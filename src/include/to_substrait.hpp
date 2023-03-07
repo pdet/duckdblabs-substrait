@@ -36,27 +36,6 @@ public:
 	//! Transforms a DuckDB Logical Type into a Substrait Type
 	static ::substrait::Type DuckToSubstraitType(const LogicalType &type, BaseStatistics *column_statistics = nullptr,
 	                                             bool not_null = false);
-	//! Creates a Conjunction
-	template <typename T, typename FUNC>
-	substrait::Expression *CreateConjunction(T &source, FUNC f) {
-		substrait::Expression *res = nullptr;
-		for (auto &ele : source) {
-			auto child_expression = f(ele);
-			if (!res) {
-				res = child_expression;
-			} else {
-				auto temp_expr = new substrait::Expression();
-				auto scalar_fun = temp_expr->mutable_scalar_function();
-				scalar_fun->set_function_reference(RegisterFunction("and"));
-				LogicalType boolean_type(LogicalTypeId::BOOLEAN);
-				*scalar_fun->mutable_output_type() = DuckToSubstraitType(boolean_type);
-				AllocateFunctionArgument(scalar_fun, res);
-				AllocateFunctionArgument(scalar_fun, child_expression);
-				res = temp_expr;
-			}
-		}
-		return res;
-	}
 
 	//! Methods to Transform Logical Operators to Substrait Relations
 	substrait::Rel *TransformOp(duckdb::LogicalOperator &dop);
@@ -134,17 +113,5 @@ private:
 
 	void AllocateFunctionArgument(substrait::Expression_ScalarFunction *scalar_fun, substrait::Expression *value);
 	std::string &RemapFunctionName(std::string &function_name);
-
-	//! Variables used to register functions
-	std::unordered_map<std::string, uint64_t> functions_map;
-	//! Remapped DuckDB functions names to Substrait compatible function names
-	static const unordered_map<std::string, std::string> function_names_remap;
-	uint64_t last_function_id = 1;
-
-	//! The substrait Plan
-	substrait::Plan plan;
-	ClientContext &context;
-
-	uint64_t max_string_length = 1;
 };
 } // namespace duckdb

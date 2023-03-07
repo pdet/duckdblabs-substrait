@@ -1,8 +1,10 @@
 #define DUCKDB_EXTENSION_MAIN
 
-#include "from_substrait.hpp"
 #include "substrait_extension.hpp"
+
+#include "from_substrait.hpp"
 #include "to_substrait.hpp"
+#include "to_substrait/plan_transformer.hpp"
 
 #ifndef DUCKDB_AMALGAMATION
 #include "duckdb/function/table_function.hpp"

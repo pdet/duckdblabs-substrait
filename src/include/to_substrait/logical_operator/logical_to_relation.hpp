@@ -1,7 +1,7 @@
 //===----------------------------------------------------------------------===//
 //                         DuckDB
 //
-// to_substrait/logical_operator/get.hpp
+// to_substrait/logical_operator/logical_to_relation.hpp
 //
 //
 //===----------------------------------------------------------------------===//
@@ -21,14 +21,37 @@
 #include "duckdb/function/table_function.hpp"
 #include "duckdb/function/function.hpp"
 
-#include "duckdb/planner/operator/logical_get.hpp"
-#include "to_substrait/logical_operator/logical_to_relation.hpp"
-
 namespace duckdb {
 //! Base class that transforms Logical DuckDB Plans to Substrait Relations
 class LogicalToRelation {
 public:
 	explicit LogicalToRelation(LogicalOperator &input_p) : input(input_p) {};
+
+	//! Converts from input to result
+	virtual void Wololo() = 0;
+
+	//! Creates a Conjunction
+	template <typename T, typename FUNC>
+	substrait::Expression *CreateConjunction(T &source, FUNC f) {
+		substrait::Expression *res = nullptr;
+		for (auto &ele : source) {
+			auto child_expression = f(ele);
+			if (!res) {
+				res = child_expression;
+			} else {
+				auto temp_expr = new substrait::Expression();
+				auto scalar_fun = temp_expr->mutable_scalar_function();
+				scalar_fun->set_function_reference(RegisterFunction("and"));
+				LogicalType boolean_type(LogicalTypeId::BOOLEAN);
+				*scalar_fun->mutable_output_type() = DuckToSubstraitType(boolean_type);
+				AllocateFunctionArgument(scalar_fun, res);
+				AllocateFunctionArgument(scalar_fun, child_expression);
+				res = temp_expr;
+			}
+		}
+		return res;
+	}
+
 	//! Flat representation table column ids of substrait - interesting choice.
 	vector<idx_t> reference_ids;
 	//! Maps DuckDB operator emit to reference id
@@ -37,32 +60,6 @@ public:
 	substrait::Rel *result = nullptr;
 	//! Original DuckDB Logical Operator
 	LogicalOperator &input;
-
-	//! Converts from input to result
-	virtual void Wololo() = 0;
 };
-//! Transforms Get Logical Operator from DuckDB to Read Relation of Substrait
-class GetToRead : LogicalToRelation {
-public:
-	explicit GetToRead(LogicalOperator &op, ClientContext &context_p)
-	    : LogicalToRelation(op), context(context_p), dget((LogicalGet &)op) {
-		D_ASSERT(op.type == LogicalOperatorType::LOGICAL_GET);
-		result = new substrait::Rel();
-	};
-	void Wololo() override;
 
-private:
-	ClientContext &context;
-	LogicalGet &dget;
-	substrait::ReadRel *sget = nullptr;
-	BindInfo *bind_info = nullptr;
-	FunctionData *bind_data = nullptr;
-
-	//! Methods to transform different LogicalGet Types (e.g., Table, Parquet)
-	//! To Substrait;
-	//! Internal function that transforms a Table Scan to a ReadRel
-	void TransformTableScan();
-	//! Internal function that transforms a Parquet Scan to a ReadRel
-	void TransformParquetScan();
-};
 } // namespace duckdb

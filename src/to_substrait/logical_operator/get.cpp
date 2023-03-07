@@ -80,14 +80,15 @@ void GetToRead::Wololo() {
 	auto s_read = result->mutable_read();
 
 	if (!dget.table_filters.filters.empty()) {
-		// Pushdown filter
-		//		auto filter =
-		//		    DuckDBToSubstrait::CreateConjunction(duck_get.table_filters.filters, [&](std::pair<const idx_t,
-		//unique_ptr<TableFilter>> &in) { 			    auto col_idx = in.first; 			    auto return_type = duck_get.returned_types[col_idx];
-		//			    auto &filter = *in.second;
-		//			    return DuckDBToSubstrait::TransformFilter(col_idx, filter, return_type);
-		//		    });
-		//		s_read->set_allocated_filter(filter);
+		//		 Pushdown filter
+		auto filter = DuckDBToSubstrait::CreateConjunction(
+		    dget.table_filters.filters, [&](std::pair<const idx_t, unique_ptr<TableFilter>> &in) {
+			    auto col_idx = in.first;
+			    auto return_type = dget.returned_types[col_idx];
+			    auto &filter = *in.second;
+			    return DuckDBToSubstrait::TransformFilter(col_idx, filter, return_type);
+		    });
+		s_read->set_allocated_filter(filter);
 	}
 
 	if (!dget.projection_ids.empty()) {
