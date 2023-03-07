@@ -1,7 +1,7 @@
 //===----------------------------------------------------------------------===//
 //                         DuckDB
 //
-// to_substrait/logical_operator/logical_to_relation.hpp
+// to_substrait/logical_operator/operator_transformer.hpp
 //
 //
 //===----------------------------------------------------------------------===//
@@ -20,12 +20,15 @@
 #include "duckdb/planner/bound_result_modifier.hpp"
 #include "duckdb/function/table_function.hpp"
 #include "duckdb/function/function.hpp"
+#include "to_substrait/plan_transformer.hpp"
+#include "to_substrait/type_transformer.hpp"
 
 namespace duckdb {
 //! Base class that transforms Logical DuckDB Plans to Substrait Relations
-class LogicalToRelation {
+class OperatorTransformer {
 public:
-	explicit LogicalToRelation(LogicalOperator &input_p) : input(input_p) {};
+	explicit OperatorTransformer(LogicalOperator &input_p, PlanTransformer &plan_p)
+	    : input(input_p), plan_transformer(plan_p) {};
 
 	//! Converts from input to result
 	virtual void Wololo() = 0;
@@ -41,9 +44,9 @@ public:
 			} else {
 				auto temp_expr = new substrait::Expression();
 				auto scalar_fun = temp_expr->mutable_scalar_function();
-				scalar_fun->set_function_reference(RegisterFunction("and"));
+				scalar_fun->set_function_reference(plan_transformer.RegisterFunction("and"));
 				LogicalType boolean_type(LogicalTypeId::BOOLEAN);
-				*scalar_fun->mutable_output_type() = DuckToSubstraitType(boolean_type);
+				*scalar_fun->mutable_output_type() = TypeTransformer::Wololo(boolean_type);
 				AllocateFunctionArgument(scalar_fun, res);
 				AllocateFunctionArgument(scalar_fun, child_expression);
 				res = temp_expr;
@@ -60,6 +63,12 @@ public:
 	substrait::Rel *result = nullptr;
 	//! Original DuckDB Logical Operator
 	LogicalOperator &input;
+	//! Original DuckDB Logical Operator
+	PlanTransformer &plan_transformer;
+
+private:
+	static void AllocateFunctionArgument(substrait::Expression_ScalarFunction *scalar_fun,
+	                                     substrait::Expression *value);
 };
 
 } // namespace duckdb

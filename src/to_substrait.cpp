@@ -1,9 +1,12 @@
 #include "to_substrait.hpp"
 
+#include "duckdb/catalog/catalog_entry/duck_table_entry.hpp"
 #include "duckdb/common/constants.hpp"
 #include "duckdb/common/enums/expression_type.hpp"
 #include "duckdb/common/types/value.hpp"
+#include "duckdb/execution/index/art/art_key.hpp"
 #include "duckdb/function/table/table_scan.hpp"
+#include "duckdb/parser/constraints/not_null_constraint.hpp"
 #include "duckdb/planner/expression/list.hpp"
 #include "duckdb/planner/filter/conjunction_filter.hpp"
 #include "duckdb/planner/filter/constant_filter.hpp"
@@ -11,19 +14,12 @@
 #include "duckdb/planner/operator/list.hpp"
 #include "duckdb/planner/table_filter.hpp"
 #include "duckdb/storage/statistics/string_statistics.hpp"
-#include "duckdb/catalog/catalog_entry/duck_table_entry.hpp"
 #include "google/protobuf/util/json_util.h"
 #include "substrait/algebra.pb.h"
 #include "substrait/plan.pb.h"
-#include "duckdb/parser/constraints/not_null_constraint.hpp"
-#include "duckdb/execution/index/art/art_key.hpp"
-#include "to_substrait/logical_operator/get.hpp"
+#include "to_substrait/logical_operator/get_transformer.hpp"
 
 namespace duckdb {
-const std::unordered_map<std::string, std::string> DuckDBToSubstrait::function_names_remap = {
-    {"mod", "modulus"},       {"stddev", "std_dev"},      {"prefix", "starts_with"}, {"suffix", "ends_with"},
-    {"substr", "substring"},  {"length", "char_length"},  {"isnan", "is_nan"},       {"isfinite", "is_finite"},
-    {"isinf", "is_infinite"}, {"sum_no_overflow", "sum"}, {"count_star", "count"},   {"~~", "like"}};
 
 std::string &DuckDBToSubstrait::RemapFunctionName(std::string &function_name) {
 	auto it = function_names_remap.find(function_name);
@@ -479,25 +475,6 @@ void DuckDBToSubstrait::TransformExpr(Expression &dexpr, substrait::Expression &
 	default:
 		throw InternalException(ExpressionTypeToString(dexpr.type));
 	}
-}
-
-uint64_t DuckDBToSubstrait::RegisterFunction(const string &name) {
-	if (name.empty()) {
-		throw InternalException("Missing function name");
-	}
-	if (functions_map.find(name) == functions_map.end()) {
-		auto function_id = last_function_id++;
-		// FIXME: We have to do some URI YAML File shenanigans
-		//		auto uri = plan.add_extension_uris();
-		//		uri->set_extension_uri_anchor(function_id);
-		auto sfun = plan.add_extensions()->mutable_extension_function();
-		sfun->set_function_anchor(function_id);
-		sfun->set_name(name);
-		//		sfun->set_extension_uri_reference(function_id);
-
-		functions_map[name] = function_id;
-	}
-	return functions_map[name];
 }
 
 void DuckDBToSubstrait::CreateFieldRef(substrait::Expression *expr, uint64_t col_idx) {
@@ -984,76 +961,4 @@ substrait::Rel *DuckDBToSubstrait::TransformCrossProduct(LogicalOperator &dop) {
 	return rel;
 }
 
-substrait::Rel *DuckDBToSubstrait::TransformOp(LogicalOperator &dop) {
-	switch (dop.type) {
-	case LogicalOperatorType::LOGICAL_FILTER:
-		return TransformFilter(dop);
-	case LogicalOperatorType::LOGICAL_TOP_N:
-		return TransformTopN(dop);
-	case LogicalOperatorType::LOGICAL_LIMIT:
-		return TransformLimit(dop);
-	case LogicalOperatorType::LOGICAL_ORDER_BY:
-		return TransformOrderBy(dop);
-	case LogicalOperatorType::LOGICAL_PROJECTION:
-		return TransformProjection(dop);
-	case LogicalOperatorType::LOGICAL_COMPARISON_JOIN:
-		return TransformComparisonJoin(dop);
-	case LogicalOperatorType::LOGICAL_AGGREGATE_AND_GROUP_BY:
-		return TransformAggregateGroup(dop);
-	case LogicalOperatorType::LOGICAL_GET:
-		return TransformGet(dop);
-	case LogicalOperatorType::LOGICAL_CROSS_PRODUCT:
-		return TransformCrossProduct(dop);
-	default:
-		throw InternalException(LogicalOperatorToString(dop.type));
-	}
-}
-
-substrait::RelRoot *DuckDBToSubstrait::TransformRootOp(LogicalOperator &dop) {
-	auto root_rel = new substrait::RelRoot();
-	LogicalOperator *current_op = &dop;
-	bool weird_scenario = current_op->type == LogicalOperatorType::LOGICAL_PROJECTION &&
-	                      current_op->children[0]->type == LogicalOperatorType::LOGICAL_TOP_N;
-	if (weird_scenario) {
-		// This is a weird scenario where a projection is put on top of a top-k but
-		// the actual aliases are on the projection below the top-k still.
-		current_op = current_op->children[0].get();
-	}
-	// If the root operator is not a projection, we must go down until we find the
-	// first projection to get the aliases
-	while (current_op->type != LogicalOperatorType::LOGICAL_PROJECTION) {
-		if (current_op->children.size() != 1) {
-			throw InternalException("Root node has more than 1, or 0 children (%d) up to "
-			                        "reaching a projection node. Type %d",
-			                        current_op->children.size(), current_op->type);
-		}
-		current_op = current_op->children[0].get();
-	}
-	root_rel->set_allocated_input(TransformOp(dop));
-	auto &dproj = (LogicalProjection &)*current_op;
-	if (!weird_scenario) {
-		for (auto &expression : dproj.expressions) {
-			root_rel->add_names(expression->GetName());
-		}
-	} else {
-		for (auto &expression : dop.expressions) {
-			D_ASSERT(expression->type == ExpressionType::BOUND_REF);
-			auto b_expr = (BoundReferenceExpression *)expression.get();
-			root_rel->add_names(dproj.expressions[b_expr->index]->GetName());
-		}
-	}
-
-	return root_rel;
-}
-
-void DuckDBToSubstrait::TransformPlan(LogicalOperator &dop) {
-	plan.add_relations()->set_allocated_root(TransformRootOp(dop));
-	auto version = plan.mutable_version();
-	version->set_major_number(0);
-	version->set_minor_number(24);
-	version->set_patch_number(0);
-	auto *producer_name = new string();
-	*producer_name = "DuckDB";
-	version->set_allocated_producer(producer_name);
-}
 } // namespace duckdb

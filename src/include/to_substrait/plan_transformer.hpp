@@ -20,18 +20,24 @@
 #include "duckdb/planner/bound_result_modifier.hpp"
 #include "duckdb/function/table_function.hpp"
 #include "duckdb/function/function.hpp"
+#include "to_substrait/type_transformer.hpp"
 
 namespace duckdb {
-//! Base class that transforms Logical DuckDB Plans to Substrait Relations
+//! Transforms Logical DuckDB Plans to Substrait Relations
 class PlanTransformer {
 public:
 	PlanTransformer(ClientContext &context_p, LogicalOperator &root_op);
 
+	uint64_t RegisterFunction(const string &name);
+
+	//! Remapped DuckDB functions names to Substrait compatible function names
+	static const std::unordered_map<std::string, std::string> function_names_remap;
+
+	ClientContext &GetContext();
+
 private:
 	//! Variables used to register functions
 	std::unordered_map<std::string, uint64_t> functions_map;
-	//! Remapped DuckDB functions names to Substrait compatible function names
-	static const unordered_map<std::string, std::string> function_names_remap;
 
 	uint64_t last_function_id = 1;
 
@@ -40,5 +46,13 @@ private:
 	ClientContext &context;
 
 	uint64_t max_string_length = 1;
+
+	//! In this function, we start to traverse the DuckDB Plan and transform each logical node into a substrait
+	//! relation.
+	static substrait::RelRoot *TransformRoot(const LogicalOperator &dop);
+
+	//! In addition, we must identify the node closest to the root that containt the aliases
+	//!  Since these must be stored in the Substait's root relation.
+	static void FillRootAliases(const LogicalOperator &duck_root, substrait::RelRoot *substrait_root);
 };
 } // namespace duckdb

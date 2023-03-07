@@ -1,10 +1,9 @@
-#include "to_substrait/logical_operator/get.hpp"
-
 #include "duckdb/catalog/catalog_entry/duck_table_entry.hpp"
 #include "duckdb/function/table/table_scan.hpp"
 #include "duckdb/parser/constraints/not_null_constraint.hpp"
 #include "duckdb/planner/operator/logical_get.hpp"
 #include "to_substrait.hpp"
+#include "to_substrait/logical_operator/get_transformer.hpp"
 
 using namespace duckdb;
 
@@ -18,7 +17,7 @@ set<idx_t> GetNotNullConstraintCol(TableCatalogEntry &tbl) {
 	return not_null;
 }
 
-void GetToRead::TransformTableScan() {
+void GetTransformer::TransformTableScan() {
 	auto &table_scan_bind_data = (TableScanBindData &)*dget.bind_data;
 	sget->mutable_named_table()->add_names(table_scan_bind_data.table->name);
 	auto base_schema = new ::substrait::NamedStruct();
@@ -31,7 +30,7 @@ void GetToRead::TransformTableScan() {
 			throw std::runtime_error("Structs are not yet accepted in table scans");
 		}
 		base_schema->add_names(dget.names[i]);
-		auto column_statistics = dget.function.statistics(context, &table_scan_bind_data, i);
+		auto column_statistics = dget.function.statistics(plan_transformer.GetContext(), &table_scan_bind_data, i);
 		bool not_null = not_null_constraint.find(i) != not_null_constraint.end();
 		auto new_type = type_info->add_types();
 		*new_type = DuckDBToSubstrait::DuckToSubstraitType(cur_type, column_statistics.get(), not_null);
@@ -40,7 +39,7 @@ void GetToRead::TransformTableScan() {
 	sget->set_allocated_base_schema(base_schema);
 }
 
-void GetToRead::TransformParquetScan() {
+void GetTransformer::TransformParquetScan() {
 	auto files_path = bind_info->GetOptionList<string>("file_path");
 	if (files_path.size() != 1) {
 		throw NotImplementedException("Substrait Parquet Reader only supports single file");
@@ -62,7 +61,7 @@ void GetToRead::TransformParquetScan() {
 			throw std::runtime_error("Structs are not yet accepted in table scans");
 		}
 		base_schema->add_names(dget.names[i]);
-		auto column_statistics = dget.function.statistics(context, bind_data, i);
+		auto column_statistics = dget.function.statistics(plan_transformer.GetContext(), bind_data, i);
 		auto new_type = type_info->add_types();
 		*new_type = DuckDBToSubstrait::DuckToSubstraitType(cur_type, column_statistics.get(), false);
 	}
@@ -70,7 +69,7 @@ void GetToRead::TransformParquetScan() {
 	sget->set_allocated_base_schema(base_schema);
 }
 
-void GetToRead::Wololo() {
+void GetTransformer::Wololo() {
 	if (!dget.function.get_batch_info) {
 		throw NotImplementedException("This Scanner Type can't be used in substrait because a get batch info "
 		                              "is not yet implemented");
@@ -80,9 +79,9 @@ void GetToRead::Wololo() {
 	auto s_read = result->mutable_read();
 
 	if (!dget.table_filters.filters.empty()) {
-		//		 Pushdown filter
-		auto filter = DuckDBToSubstrait::CreateConjunction(
-		    dget.table_filters.filters, [&](std::pair<const idx_t, unique_ptr<TableFilter>> &in) {
+		//	Pushdown filter
+		auto filter =
+		    CreateConjunction(dget.table_filters.filters, [&](std::pair<const idx_t, unique_ptr<TableFilter>> &in) {
 			    auto col_idx = in.first;
 			    auto return_type = dget.returned_types[col_idx];
 			    auto &filter = *in.second;

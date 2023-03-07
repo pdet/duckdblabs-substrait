@@ -95,9 +95,12 @@ set(SUBSTRAIT_SOURCES
     third_party/substrait/substrait/extensions/extensions.pb.cc)
 
 set(TO_SUBSTRAIT_SOURCES
-    src/to_substrait.cpp src/substrait_extension.cpp
-    src/to_substrait/logical_operator/get.cpp
-    src/to_substrait/plan_transformer.cpp)
+    src/to_substrait.cpp
+    src/substrait_extension.cpp
+    src/to_substrait/logical_operator/get_transformer.cpp
+    src/to_substrait/logical_operator/operator_transformer.cpp
+    src/to_substrait/plan_transformer.cpp
+    src/to_substrait/type_transformer.cpp)
 
 set(FROM_SUBSTRAIT_SOURCES src/from_substrait.cpp)
 
