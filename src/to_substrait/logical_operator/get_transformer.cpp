@@ -4,6 +4,7 @@
 #include "duckdb/planner/operator/logical_get.hpp"
 #include "to_substrait.hpp"
 #include "to_substrait/logical_operator/get_transformer.hpp"
+#include "to_substrait/expression/filter_transformer.hpp"
 
 using namespace duckdb;
 

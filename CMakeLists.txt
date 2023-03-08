@@ -100,7 +100,10 @@ set(TO_SUBSTRAIT_SOURCES
     src/to_substrait/logical_operator/get_transformer.cpp
     src/to_substrait/logical_operator/operator_transformer.cpp
     src/to_substrait/plan_transformer.cpp
-    src/to_substrait/type_transformer.cpp)
+    src/to_substrait/type_transformer.cpp
+    src/to_substrait/expression/constant_transformer.cpp
+    src/to_substrait/expression/field_reference_transformer.cpp
+    src/to_substrait/expression/filter_transformer.cpp)
 
 set(FROM_SUBSTRAIT_SOURCES src/from_substrait.cpp)
 

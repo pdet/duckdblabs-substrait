@@ -1,8 +1,0 @@
-//
-// Created by Pedro Holanda on 07/03/23.
-//
-
-#ifndef DUCKDB_FILTER_TRANSFORMER_HPP
-#define DUCKDB_FILTER_TRANSFORMER_HPP
-
-#endif // DUCKDB_FILTER_TRANSFORMER_HPP
