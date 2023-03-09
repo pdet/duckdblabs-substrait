@@ -1,8 +1,28 @@
+//===----------------------------------------------------------------------===//
+//                         DuckDB
 //
-// Created by Pedro Holanda on 08/03/2023.
+// to_substrait/expression/field_reference_transformer.hpp
 //
+//
+//===----------------------------------------------------------------------===//
 
-#ifndef DUCKDB_FIELD_REFERENCE_TRANSFORMER_HPP
-#define DUCKDB_FIELD_REFERENCE_TRANSFORMER_HPP
+#pragma once
 
-#endif // DUCKDB_FIELD_REFERENCE_TRANSFORMER_HPP
+#include "to_substrait/expression/expression_transformer.hpp"
+
+#include <substrait/algebra.pb.h>
+
+namespace duckdb {
+//! Transforms A DuckDB Filter Expression to a Substrait Filter Expression
+class FieldReferenceTransformer : ExpressionTransformer {
+public:
+	explicit FieldReferenceTransformer(substrait::Expression *expr, uint64_t col_idx);
+
+	//! Perform the actual conversion
+	substrait::Expression *Wololo() override;
+
+private:
+	const uint64_t col_idx;
+	substrait::Expression *expr;
+};
+} // namespace duckdb
