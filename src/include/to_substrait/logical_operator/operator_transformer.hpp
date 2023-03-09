@@ -27,11 +27,7 @@ namespace duckdb {
 //! Base class that transforms Logical DuckDB Plans to Substrait Relations
 class OperatorTransformer {
 public:
-	explicit OperatorTransformer(LogicalOperator &input_p, PlanTransformer &plan_p)
-	    : input(input_p), plan_transformer(plan_p) {};
-
-	//! Converts from input to result
-	virtual void Wololo() = 0;
+	explicit OperatorTransformer(LogicalOperator &input_p, PlanTransformer &plan_p);
 
 	//! Flat representation table column ids of substrait - interesting choice.
 	vector<idx_t> reference_ids;
@@ -44,9 +40,12 @@ public:
 	//! Original DuckDB Logical Operator
 	PlanTransformer &plan_transformer;
 
-private:
-	static void AllocateFunctionArgument(substrait::Expression_ScalarFunction *scalar_fun,
-	                                     substrait::Expression *value);
+	vector<unique_ptr<OperatorTransformer>> children;
+
+	static unique_ptr<OperatorTransformer> Wololo(LogicalOperator &dop, PlanTransformer &plan_p);
+
+	//! Converts from input to result
+	virtual void Wololo() = 0;
 };
 
 } // namespace duckdb
