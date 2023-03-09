@@ -5,8 +5,14 @@
 #include "to_substrait.hpp"
 #include "to_substrait/logical_operator/get_transformer.hpp"
 #include "to_substrait/expression/filter_transformer.hpp"
+#include "to_substrait/expression/conjunction_factory.hpp"
 
 using namespace duckdb;
+
+GetTransformer::GetTransformer(LogicalOperator &op, PlanTransformer &plan_p)
+    : OperatorTransformer(op, plan_p), dget((LogicalGet &)op) {
+	D_ASSERT(op.type == LogicalOperatorType::LOGICAL_GET);
+};
 
 set<idx_t> GetNotNullConstraintCol(TableCatalogEntry &tbl) {
 	set<idx_t> not_null;
@@ -81,12 +87,13 @@ void GetTransformer::Wololo() {
 
 	if (!dget.table_filters.filters.empty()) {
 		//	Pushdown filter
-		auto filter =
-		    CreateConjunction(dget.table_filters.filters, [&](std::pair<const idx_t, unique_ptr<TableFilter>> &in) {
+		auto filter = plan_transformer.conjunction_factory->CreateConjunction(
+		    dget.table_filters.filters, [&](std::pair<const idx_t, unique_ptr<TableFilter>> &in) {
 			    auto col_idx = in.first;
 			    auto return_type = dget.returned_types[col_idx];
 			    auto &filter = *in.second;
-			    return DuckDBToSubstrait::TransformFilter(col_idx, filter, return_type);
+			    FilterTransformer filter_transformer(col_idx, filter, return_type, plan_transformer);
+			    return filter_transformer.Wololo();
 		    });
 		s_read->set_allocated_filter(filter);
 	}

@@ -1,7 +1,7 @@
 //===----------------------------------------------------------------------===//
 //                         DuckDB
 //
-// to_substrait/logical_operator/get.hpp
+// to_substrait/logical_operator/get_transformer.hpp
 //
 //
 //===----------------------------------------------------------------------===//
@@ -15,13 +15,10 @@
 
 namespace duckdb {
 //! Transforms Get Logical Operator from DuckDB to Read Relation of Substrait
-class GetTransformer : OperatorTransformer {
+class GetTransformer : public OperatorTransformer {
 public:
-	explicit GetTransformer(LogicalOperator &op, PlanTransformer &plan_p)
-	    : OperatorTransformer(op, plan_p), dget((LogicalGet &)op) {
-		D_ASSERT(op.type == LogicalOperatorType::LOGICAL_GET);
-		result = new substrait::Rel();
-	};
+	explicit GetTransformer(LogicalOperator &op, PlanTransformer &plan_p);
+
 	void Wololo() override;
 
 private:
