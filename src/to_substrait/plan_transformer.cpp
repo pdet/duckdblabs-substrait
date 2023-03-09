@@ -1,7 +1,7 @@
 #include "to_substrait/plan_transformer.hpp"
 #include "duckdb/planner/operator/logical_projection.hpp"
 #include "duckdb/planner/expression/bound_reference_expression.hpp"
-
+#include "to_substrait/expression/conjunction_factory.hpp"
 using namespace duckdb;
 
 const std::unordered_map<std::string, std::string> PlanTransformer::function_names_remap = {
@@ -22,6 +22,7 @@ PlanTransformer::PlanTransformer(ClientContext &context_p, LogicalOperator &root
 	auto *producer_name = new string();
 	*producer_name = "DuckDB";
 	version->set_allocated_producer(producer_name);
+	conjunction_factory = make_unique<ConjunctionFactory>(*this);
 }
 
 ClientContext &PlanTransformer::GetContext() {

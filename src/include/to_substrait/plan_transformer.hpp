@@ -21,9 +21,12 @@
 #include "duckdb/function/table_function.hpp"
 #include "duckdb/function/function.hpp"
 #include "to_substrait/type_transformer.hpp"
+// #include "to_substrait/expression/conjunction_factory.hpp"
 
 namespace duckdb {
 //! Transforms Logical DuckDB Plans to Substrait Relations
+class ConjunctionFactory;
+
 class PlanTransformer {
 public:
 	PlanTransformer(ClientContext &context_p, LogicalOperator &root_op);
@@ -34,6 +37,8 @@ public:
 	static const std::unordered_map<std::string, std::string> function_names_remap;
 
 	ClientContext &GetContext();
+
+	unique_ptr<ConjunctionFactory> conjunction_factory;
 
 private:
 	//! Variables used to register functions
