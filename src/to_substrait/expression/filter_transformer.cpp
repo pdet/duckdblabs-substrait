@@ -4,6 +4,8 @@
 #include "duckdb/planner/filter/constant_filter.hpp"
 #include "to_substrait/type_transformer.hpp"
 #include "to_substrait/expression/constant_transformer.hpp"
+#include "to_substrait/expression/conjunction_factory.hpp"
+
 using namespace duckdb;
 
 FilterTransformer::FilterTransformer(uint64_t col_idx_p, TableFilter &dfilter_p, LogicalType &return_type_p,
