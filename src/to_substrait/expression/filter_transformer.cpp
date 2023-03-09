@@ -5,12 +5,17 @@
 #include "to_substrait/type_transformer.hpp"
 #include "to_substrait/expression/constant_transformer.hpp"
 #include "to_substrait/expression/conjunction_factory.hpp"
+#include "to_substrait/expression/field_reference_transformer.hpp"
 
 using namespace duckdb;
 
-FilterTransformer::FilterTransformer(uint64_t col_idx_p, TableFilter &dfilter_p, LogicalType &return_type_p,
+FilterTransformer::FilterTransformer(uint64_t col_idx_p, TableFilter &dfilter_p, const LogicalType &return_type_p,
                                      PlanTransformer &plan_p)
     : col_idx(col_idx_p), dfilter(dfilter_p), return_type(return_type_p), plan(plan_p), filter(nullptr) {
+}
+
+//! Perform the actual conversion
+substrait::Expression *FilterTransformer::Wololo() {
 	switch (dfilter.filter_type) {
 	case TableFilterType::IS_NOT_NULL:
 		TransformIsNotNullFilter();
@@ -24,6 +29,7 @@ FilterTransformer::FilterTransformer(uint64_t col_idx_p, TableFilter &dfilter_p,
 	default:
 		throw NotImplementedException("Unsupported table filter type");
 	}
+	return filter;
 }
 
 void FilterTransformer::TransformIsNotNullFilter() {
@@ -31,14 +37,18 @@ void FilterTransformer::TransformIsNotNullFilter() {
 	auto scalar_fun = filter->mutable_scalar_function();
 	scalar_fun->set_function_reference(plan.RegisterFunction("is_not_null"));
 	auto s_arg = scalar_fun->add_arguments();
-	CreateFieldRef(s_arg->mutable_value(), col_idx);
-	*scalar_fun->mutable_output_type() =  TypeTransformer::Wololo((return_type);
+	FieldReferenceTransformer field_ref(s_arg->mutable_value(), col_idx);
+	field_ref.Wololo();
+	*scalar_fun->mutable_output_type() = TypeTransformer::Wololo(return_type);
 }
 
 void FilterTransformer::TransformConjunctionAndFilter() {
 	auto &conjunction_filter = (ConjunctionAndFilter &)dfilter;
-	filter = CreateConjunction(conjunction_filter.child_filters,
-	                           [&](unique_ptr<TableFilter> &in) { return TransformFilter(col_idx, *in, return_type); });
+	filter =
+	    plan.conjunction_factory->CreateConjunction(conjunction_filter.child_filters, [&](unique_ptr<TableFilter> &in) {
+		    FilterTransformer filter_transformer(col_idx, *in, return_type, plan);
+		    return filter_transformer.Wololo();
+	    });
 }
 
 void FilterTransformer::TransformConstantComparisonFilter() {
@@ -47,7 +57,8 @@ void FilterTransformer::TransformConstantComparisonFilter() {
 	auto &constant_filter = (ConstantFilter &)dfilter;
 	*s_scalar->mutable_output_type() = TypeTransformer::Wololo(return_type);
 	auto s_arg = s_scalar->add_arguments();
-	CreateFieldRef(s_arg->mutable_value(), col_idx);
+	FieldReferenceTransformer field_ref(s_arg->mutable_value(), col_idx);
+	field_ref.Wololo();
 	s_arg = s_scalar->add_arguments();
 	ConstantTransformer constant(constant_filter.constant, *s_arg->mutable_value());
 	constant.Wololo();
