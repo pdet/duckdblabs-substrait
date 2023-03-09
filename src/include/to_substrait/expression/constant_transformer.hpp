@@ -9,12 +9,12 @@
 #pragma once
 
 #include "to_substrait/logical_operator/operator_transformer.hpp"
-
+#include "to_substrait/expression/expression_transformer.hpp"
 #include <string>
 #include <unordered_map>
 namespace duckdb {
 //! Transforms Logical DuckDB Plans to Substrait Relations
-class ConstantTransformer {
+class ConstantTransformer : ExpressionTransformer {
 public:
 	// TODO: this can create the substrait expression internally and just return the pointer, gets cleaner imo
 	ConstantTransformer(Value &dval, substrait::Expression &sexpr);
@@ -25,7 +25,7 @@ public:
 	substrait::Expression &sexpr;
 
 	//! Perform the actual conversion
-	substrait::Expression *Wololo();
+	substrait::Expression *Wololo() override;
 
 private:
 	//! Methods to transform DuckDBConstants to Substrait Expressions
@@ -45,6 +45,6 @@ private:
 	void TransformEnum();
 
 	//! Gets bytes of the value
-	string GetRawValue(hugeint_t value);
+	static string GetRawValue(hugeint_t value);
 };
 } // namespace duckdb

@@ -92,9 +92,8 @@ void ConstantTransformer::TransformDecimal() {
 	auto &sval = *sexpr.mutable_literal();
 	auto *allocated_decimal = new ::substrait::Expression_Literal_Decimal();
 	uint8_t scale, width;
-	hugeint_t hugeint_value;
+	hugeint_t hugeint_value {};
 	Value mock_value;
-	// alright time for some dirty switcharoo
 	switch (dval.type().InternalType()) {
 	case PhysicalType::INT8: {
 		auto internal_value = dval.GetValueUnsafe<int8_t>();
@@ -165,8 +164,8 @@ void ConstantTransformer::TransformTime() {
 }
 void ConstantTransformer::TransformInterval() {
 	// Substrait supports two types of INTERVAL (interval_year and interval_day)
-	// whereas DuckDB INTERVAL combines both in one type. Therefore intervals
-	// containing both months and days or seconds will lose some data
+	// whereas DuckDB INTERVAL combines both in one type. Therefore, intervals
+	// containing both months and days or seconds will lose some data,
 	// unfortunately. This implementation opts to set the largest interval value.
 	auto &sval = *sexpr.mutable_literal();
 	auto months = dval.GetValue<interval_t>().months;
@@ -177,7 +176,7 @@ void ConstantTransformer::TransformInterval() {
 	} else {
 		auto interval_day = make_unique<substrait::Expression_Literal_IntervalDayToSecond>();
 		interval_day->set_days(dval.GetValue<interval_t>().days);
-		interval_day->set_microseconds(dval.GetValue<interval_t>().micros);
+		interval_day->set_microseconds((int32_t)dval.GetValue<interval_t>().micros);
 		sval.set_allocated_interval_day_to_second(interval_day.release());
 	}
 }

@@ -97,8 +97,16 @@ set(SUBSTRAIT_SOURCES
 set(TO_SUBSTRAIT_SOURCES
     src/to_substrait.cpp
     src/substrait_extension.cpp
+    src/to_substrait/logical_operator/aggregate_transformer.cpp
+    src/to_substrait/logical_operator/cross_product_transformer.cpp
+    src/to_substrait/logical_operator/filter_transformer.cpp
     src/to_substrait/logical_operator/get_transformer.cpp
+    src/to_substrait/logical_operator/join_transformer.cpp
+    src/to_substrait/logical_operator/limit_transformer.cpp
     src/to_substrait/logical_operator/operator_transformer.cpp
+    src/to_substrait/logical_operator/order_by_transformer.cpp
+    src/to_substrait/logical_operator/projection_transformer.cpp
+    src/to_substrait/logical_operator/top_n_transformer.cpp
     src/to_substrait/plan_transformer.cpp
     src/to_substrait/type_transformer.cpp
     src/to_substrait/expression/constant_transformer.cpp

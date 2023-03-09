@@ -1,8 +1,19 @@
+//===----------------------------------------------------------------------===//
+//                         DuckDB
 //
-// Created by Pedro Holanda on 09/03/2023.
+// to_substrait/expression/expression_transformer.hpp
 //
+//
+//===----------------------------------------------------------------------===//
 
-#ifndef DUCKDB_EXPRESSION_TRANSFORMER_HPP
-#define DUCKDB_EXPRESSION_TRANSFORMER_HPP
+#pragma once
 
-#endif //DUCKDB_EXPRESSION_TRANSFORMER_HPP
+namespace duckdb {
+//! Transforms Logical DuckDB Plans to Substrait Relations
+class ExpressionTransformer {
+public:
+	ExpressionTransformer() = default;
+
+	virtual substrait::Expression *Wololo() = 0;
+};
+} // namespace duckdb
