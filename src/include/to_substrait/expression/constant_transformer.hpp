@@ -16,24 +16,35 @@ namespace duckdb {
 //! Transforms Logical DuckDB Plans to Substrait Relations
 class ConstantTransformer {
 public:
-	static ::substrait::Type Wololo(const LogicalType &type, idx_t *max_string_length = nullptr,
-	                                BaseStatistics *column_statistics = nullptr, bool not_null = true);
+	// TODO: this can create the substrait expression internally and just return the pointer, gets cleaner imo
+	ConstantTransformer(Value &dval, substrait::Expression &sexpr);
 
+	//! DuckDB Constant Value
+	Value &dval;
+	//! Substrait expression of a constant value
+	substrait::Expression &sexpr;
+
+	//! Perform the actual conversion
+	substrait::Expression *Wololo();
+
+private:
 	//! Methods to transform DuckDBConstants to Substrait Expressions
-	void TransformConstant(duckdb::Value &dval, substrait::Expression &sexpr);
-	void TransformInteger(duckdb::Value &dval, substrait::Expression &sexpr);
-	void TransformDouble(Value &dval, substrait::Expression &sexpr);
-	void TransformBigInt(duckdb::Value &dval, substrait::Expression &sexpr);
-	void TransformDate(duckdb::Value &dval, substrait::Expression &sexpr);
-	void TransformVarchar(duckdb::Value &dval, substrait::Expression &sexpr);
-	void TransformBoolean(duckdb::Value &dval, substrait::Expression &sexpr);
-	void TransformDecimal(duckdb::Value &dval, substrait::Expression &sexpr);
-	void TransformHugeInt(Value &dval, substrait::Expression &sexpr);
-	void TransformSmallInt(duckdb::Value &dval, substrait::Expression &sexpr);
-	void TransformFloat(Value &dval, substrait::Expression &sexpr);
-	void TransformTime(Value &dval, substrait::Expression &sexpr);
-	void TransformInterval(Value &dval, substrait::Expression &sexpr);
-	void TransformTimestamp(Value &dval, substrait::Expression &sexpr);
-	void TransformEnum(duckdb::Value &dval, substrait::Expression &sexpr);
+	void TransformInteger();
+	void TransformDouble();
+	void TransformBigInt();
+	void TransformDate();
+	void TransformVarchar();
+	void TransformBoolean();
+	void TransformDecimal();
+	void TransformHugeInt();
+	void TransformSmallInt();
+	void TransformFloat();
+	void TransformTime();
+	void TransformInterval();
+	void TransformTimestamp();
+	void TransformEnum();
+
+	//! Gets bytes of the value
+	string GetRawValue(hugeint_t value);
 };
 } // namespace duckdb

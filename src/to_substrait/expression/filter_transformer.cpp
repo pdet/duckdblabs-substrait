@@ -4,7 +4,6 @@
 #include "duckdb/planner/filter/constant_filter.hpp"
 #include "to_substrait/type_transformer.hpp"
 #include "to_substrait/expression/constant_transformer.hpp"
-
 using namespace duckdb;
 
 FilterTransformer::FilterTransformer(uint64_t col_idx_p, TableFilter &dfilter_p, LogicalType &return_type_p,
@@ -48,7 +47,8 @@ void FilterTransformer::TransformConstantComparisonFilter() {
 	auto s_arg = s_scalar->add_arguments();
 	CreateFieldRef(s_arg->mutable_value(), col_idx);
 	s_arg = s_scalar->add_arguments();
-	TransformConstant(constant_filter.constant, *s_arg->mutable_value());
+	ConstantTransformer constant(constant_filter.constant, *s_arg->mutable_value());
+	constant.Wololo();
 	uint64_t function_id;
 	switch (constant_filter.comparison_type) {
 	case ExpressionType::COMPARE_EQUAL:
